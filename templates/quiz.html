@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            margin: 0;
+            padding: 0 0 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #fff;
+            margin-top: 40px;
+            padding: 20px 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+        .score-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            font-weight: bold;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form > div {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="radio"] {
+            margin-top: 5px;
+        }
+        input[type="submit"] {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #007BFF;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            background-color: #f1f1f1;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="score-box">
+        Global Best Score: {{ global_best }}<br>
+        Your Best Score: {{ user_best }}
+    </div>
+    <div class="container">
+        <h1>Quiz</h1>
+        <form method="post">
+            <div>
+                <h2>Adınız:</h2>
+                <input type="text" name="username" placeholder="Adınızı girin" required>
+            </div>
+            <!-- Sınav soruları -->
+            {% for q in questions %}
+            <div>
+                <h2>Soru {{ q.id }}: {{ q.question }}</h2>
+                {% for key, option in q.options.items() %}
+                <label>
+                    <input type="radio" name="question_{{ q.id }}" value="{{ key }}" required> {{ option }}
+                </label><br>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <input type="submit" value="Sınavı Gönder">
+        </form>
+    </div>
+    <footer>
+        <p>Ege Mert Gülderen tarafından geliştirildi. Tüm hakları saklıdır</p>
+    </footer>
+</body>
+</html>
