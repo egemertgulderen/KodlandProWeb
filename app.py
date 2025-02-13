@@ -4,19 +4,24 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Konfigürasyon ayarları
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quiz.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = '12421512361651252153215'
 
 db = SQLAlchemy(app)
 
-# Veritabanı modeli: Her sınav gönderimi kaydedilir.
+# Submission tablosu: Her sınav gönderimi kaydedilir.
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
     score = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+# UserStats tablosu: Her kullanıcı için en yüksek skor (best_score) saklanır.
+class UserStats(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    best_score = db.Column(db.Integer, default=0)
 
 quiz_questions = [
     {
@@ -68,37 +73,56 @@ def quiz():
         db.session.add(new_submission)
         db.session.commit()
 
+        user_stats = UserStats.query.filter_by(username=username).first()
+        if not user_stats:
+            user_stats = UserStats(username=username, best_score=score)
+            db.session.add(user_stats)
+        else:
+            if score > user_stats.best_score:
+                user_stats.best_score = score
+        db.session.commit()
+
+        session['username'] = username
         session['last_score'] = score
-        user_best = db.session.query(db.func.max(Submission.score))\
-                              .filter(Submission.username == username).scalar()
-        session['user_best'] = user_best
 
         return redirect(url_for('result', username=username))
 
+    username = session.get('username')
+    user_best = 0
+    if username:
+        user_stats = UserStats.query.filter_by(username=username).first()
+        if user_stats:
+            user_best = user_stats.best_score
+
     global_best = db.session.query(db.func.max(Submission.score)).scalar() or 0
-    user_best = session.get('user_best', 0)
 
-    return render_template('quiz.html', questions=quiz_questions, global_best=global_best, user_best=user_best)
-
+    return render_template('quiz.html', questions=quiz_questions,
+                           global_best=global_best, user_best=user_best)
 @app.route('/result')
 def result():
     username = request.args.get('username', 'Anonymous')
     last_score = session.get('last_score', 0)
-    user_best = session.get('user_best', 0)
+
+    user_stats = UserStats.query.filter_by(username=username).first()
+    user_best = user_stats.best_score if user_stats else 0
+
     global_best = db.session.query(db.func.max(Submission.score)).scalar() or 0
 
-    # Yüzdelik sonuç hesaplama
     total_questions = len(quiz_questions)
     last_percentage = (last_score / total_questions) * 100
     user_best_percentage = (user_best / total_questions) * 100
     global_best_percentage = (global_best / total_questions) * 100
 
-    return render_template('result.html', username=username, last_score=last_score,
-                           user_best=user_best, global_best=global_best,
+    return render_template('result.html',
+                           username=username,
+                           last_score=last_score,
+                           user_best=user_best,
+                           global_best=global_best,
                            last_percentage=last_percentage,
                            user_best_percentage=user_best_percentage,
                            global_best_percentage=global_best_percentage)
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all() 
+        db.create_all()
+    app.run(debug=True)
